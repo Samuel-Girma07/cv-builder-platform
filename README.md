@@ -1,132 +1,210 @@
-# CV & Cover Letter Builder Platform
+# CV Builder Platform
 
-A Server-Side Rendered (SSR) web application for building professional CVs and generating AI-powered cover letters with ATS (Applicant Tracking System) scoring.
+CV Builder Platform is a full-stack web application for building structured CV profiles, scoring job applications against CV data, and generating cover letters and PDFs with AI assistance.
 
-## Tech Stack
+The backend is a Node.js and Express REST API. The frontend is a separate vanilla HTML/CSS/JavaScript client served from `public/` and communicates with the backend through `/api` endpoints.
+
+## Technology Stack
 
 | Layer | Technology |
 |---|---|
 | Runtime | Node.js |
-| Framework | Express.js |
-| Templating | EJS (Server-Side Rendered) |
-| Database | PostgreSQL (`pg`) |
-| Sessions | `express-session` + `connect-pg-simple` |
-| Authentication | `bcrypt` |
-| File Upload | `multer` (memoryStorage, PDF only, 5MB limit) |
-| PDF Parsing | `pdf-parse` |
-| AI Engine | NVIDIA NIM via `openai` SDK (`meta/llama-3.1-70b-instruct`) |
-| Config | `dotenv` |
-
-## Architecture
-
-This project follows a **strict MVC (Model-View-Controller)** pattern:
-
-```
-cv-builder-platform/
-│
-├── app.js                          # Express server entry point
-├── package.json
-├── .env                            # Environment variables (not committed)
-│
-├── config/
-│   └── db.js                       # PostgreSQL connection pool
-│
-├── middlewares/
-│   └── authMiddleware.js           # Route protection via session verification
-│
-├── models/                         # All SQL queries live here
-│   ├── userQuery.js
-│   ├── profileQuery.js
-│   └── applicationQuery.js
-│
-├── routes/
-│   ├── authRoutes.js               # Login / Register
-│   ├── wizardRoutes.js             # Multi-step onboarding
-│   ├── profileRoutes.js            # PDF upload & manual edits
-│   └── applicationRoutes.js        # Cover letter generation & ATS scoring
-│
-├── controllers/
-│   ├── authController.js
-│   ├── wizardController.js
-│   ├── profileController.js
-│   └── applicationController.js
-│
-├── views/
-│   ├── partials/                   # header.ejs, footer.ejs, navbar.ejs
-│   ├── index.ejs                   # Dashboard
-│   ├── auth/                       # login.ejs, register.ejs
-│   ├── wizard/                     # step1.ejs, step2.ejs, etc.
-│   ├── profile/                    # edit.ejs, upload.ejs
-│   └── applications/              # new.ejs, view.ejs, fallback-template.ejs
-│
-├── public/
-│   └── css/                        # Custom styles + @media print rules
-│
-└── database/
-    └── schema.sql                  # PostgreSQL schema definition
-```
+| Backend | Express.js |
+| Frontend | Vanilla HTML, CSS, and JavaScript |
+| Database | PostgreSQL |
+| Authentication | JWT |
+| Password Security | bcrypt hashing |
+| File Upload | multer |
+| PDF Parsing | pdf-parse |
+| PDF Generation | PDFKit |
+| AI Integration | NVIDIA API through the OpenAI-compatible SDK |
+| Rate Limiting | express-rate-limit |
+| Configuration | dotenv |
 
 ## Core Features
 
-### 1. Onboarding Wizard
-Multi-step profile creation flow using session-based draft data. Collects personal info, experience, and skills — stores structured JSON in the database.
+- User registration and login with hashed passwords.
+- JWT-protected API routes.
+- Structured CV profile builder.
+- PDF resume upload and AI parsing.
+- AI-generated professional summaries.
+- ATS score generation from CV data and job descriptions.
+- AI-generated cover letters with tone selection.
+- CV PDF and cover letter PDF downloads.
+- PostgreSQL relational schema with user-owned profiles and applications.
+- Leveled request and application logging to console and a log file.
+- Rate limiting on authentication and AI endpoints.
+- Consistent JSON API error responses.
+- A dark-first design system with a vanilla-JS single-page client.
 
-### 2. PDF Magic Parser
-Upload a PDF resume → text extraction via `pdf-parse` → AI-powered structured JSON conversion via NVIDIA NIM → saved to database in the same schema as the wizard output.
+## Project Structure
 
-### 3. ATS AI Matcher
-Input a job description → AI compares it against your profile → returns an ATS compatibility score (0-100) and identifies missing skills.
-
-### 4. Cover Letter Generator
-Generate AI-powered cover letters with selectable tones (Formal, Confident, Concise). Falls back to a programmatic EJS "Mad-Libs" template if the AI API is unavailable.
-
-### 5. Print-to-PDF Export
-Clean `@media print` CSS hides navigation and formats the page as a formal A4 document for browser-native print-to-PDF export.
-
-## Database Schema
-
-- **users** — `id`, `email` (UNIQUE), `password_hash`, `created_at`
-- **profiles** — `id`, `user_id` (FK), `parsed_json_data` (JSONB)
-- **applications** — `id`, `user_id` (FK), `job_title`, `company`, `job_description`, `ats_match_score`, `missing_skills` (JSONB), `selected_tone`, `generated_cover_letter`, `created_at`
-
-## Design
-
-Minimalist black-and-white dashboard aesthetic with:
-- Fixed left vertical sidebar navigation
-- Clean rectangular cards with subtle borders
-- Grayscale palette with subtle green/red score indicators
-- Responsive CSS Grid & Flexbox layout
+```text
+cv-builder-platform/
+├── app.js
+├── config/
+│   └── db.js
+├── controllers/
+│   ├── applicationController.js
+│   ├── authController.js
+│   └── profileController.js
+├── database/
+│   └── schema.sql
+├── docs/
+│   ├── API.md
+│   └── ER_DIAGRAM.md
+├── middlewares/
+│   ├── authMiddleware.js
+│   ├── logger.js
+│   └── rateLimiters.js
+├── models/
+│   ├── applicationQuery.js
+│   ├── profileQuery.js
+│   └── userQuery.js
+├── public/
+│   ├── css/
+│   │   └── style.css
+│   ├── js/
+│   │   └── app.js
+│   ├── design.html
+│   └── index.html
+├── routes/
+│   ├── applicationRoutes.js
+│   ├── authRoutes.js
+│   └── profileRoutes.js
+└── services/
+    ├── coverLetterPdf.js
+    └── cvPdf.js
+```
 
 ## Setup
 
+1. Install dependencies:
+
 ```bash
-# Clone the repository
-git clone https://github.com/Samuel-Girma07/cv-builder-platform.git
-cd cv-builder-platform
-
-# Install dependencies
 npm install
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your PostgreSQL connection string, NVIDIA API key, and session secret
-
-# Initialize the database
-psql -U your_user -d your_db -f database/schema.sql
-
-# Start the server
-npm start
 ```
 
-## Environment Variables
+2. Create an environment file:
+
+```bash
+cp .env.example .env
+```
+
+3. Fill in the required values:
 
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/cv_builder
-NVIDIA_API_KEY=your_nvidia_nim_api_key
-SESSION_SECRET=your_session_secret
+JWT_SECRET=replace_with_a_long_random_secret
+NVIDIA_API_KEY=replace_with_your_nvidia_api_key
+NVIDIA_BASE_URL=https://integrate.api.nvidia.com/v1
+NVIDIA_MODEL=qwen/qwen3-next-80b-a3b-instruct
 PORT=3000
 ```
 
-## License
+The app requires `DATABASE_URL`, `JWT_SECRET`, and `NVIDIA_API_KEY` at startup.
 
-MIT
+4. Create the PostgreSQL database tables:
+
+```bash
+psql -U your_user -d cv_builder -f database/schema.sql
+```
+
+5. Start the application:
+
+```bash
+npm start
+```
+
+Open `http://localhost:3000`.
+
+## API Documentation
+
+The API reference is in [docs/API.md](docs/API.md).
+
+Main route groups:
+
+- `/api/auth`
+- `/api/profile`
+- `/api/applications`
+
+### Endpoint Summary
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/health` | — | Service health check. |
+| POST | `/api/auth/register` | — | Register a user; returns a JWT. |
+| POST | `/api/auth/login` | — | Log in; returns a JWT. |
+| GET | `/api/auth/me` | JWT | Return the authenticated user. |
+| GET | `/api/profile` | JWT | Get the user's CV profile and template options. |
+| PUT | `/api/profile` | JWT | Save the user's CV profile. |
+| POST | `/api/profile/upload` | JWT | Upload a PDF resume and parse it with AI. |
+| POST | `/api/profile/summary` | JWT | Generate a professional summary with AI. |
+| PUT | `/api/profile/skill-levels` | JWT | Save per-skill proficiency levels. |
+| GET | `/api/profile/cv.pdf` | JWT | Download the CV as a PDF (`?template=modern\|classic\|bold`). |
+| GET | `/api/applications` | JWT | List the user's applications. |
+| GET | `/api/applications/stats` | JWT | Get application count and average ATS score. |
+| POST | `/api/applications` | JWT | Create an application and AI-score it against the CV. |
+| GET | `/api/applications/:id` | JWT | Get a single application. |
+| POST | `/api/applications/:id/cover-letter` | JWT | Generate a cover letter with a selected tone. |
+| GET | `/api/applications/:id/cover-letter.pdf` | JWT | Download the cover letter as a PDF. |
+
+Authenticated routes expect an `Authorization: Bearer <token>` header. Full request
+and response shapes are documented in [docs/API.md](docs/API.md).
+
+## Database Schema
+
+The DDL script is in [database/schema.sql](database/schema.sql).
+
+The ER diagram is in [docs/ER_DIAGRAM.md](docs/ER_DIAGRAM.md).
+
+Tables:
+
+- `users`
+- `profiles`
+- `applications`
+
+## Security Notes
+
+- Passwords are stored as bcrypt hashes.
+- Authenticated API routes require a signed JWT.
+- Application and profile queries are scoped to the authenticated user.
+- The NVIDIA API key is read from environment variables and is not committed.
+- Authentication endpoints are rate limited to 20 requests per IP per 15 minutes
+  to slow brute-force and signup abuse.
+- AI endpoints are rate limited to 12 requests per IP per minute because they call
+  a paid third-party API.
+
+## Logging
+
+All requests are logged with method, path, status code, and duration. Application
+events and server errors are logged with levels (`INFO`, `WARN`, `ERROR`). Logs are
+written both to the console and to `logs/app.log`. The `logs/` directory is created
+automatically at startup and is ignored by Git.
+
+## Design System
+
+The client is a vanilla HTML/CSS/JavaScript single-page app served from `public/`.
+A standalone design-system proof page is available at `/design.html`, showing the
+typography, color tokens, surfaces, buttons, inputs, cards, states, and light/dark
+themes that the rest of the interface is built from.
+
+## Extra Features Beyond The Basic Requirement
+
+- PDF upload and AI parsing.
+- AI ATS matching.
+- AI cover letter generation.
+- CV PDF generation with multiple templates.
+- Cover letter PDF generation.
+- Rate limiting on authentication and AI endpoints.
+- Leveled application logging to console and file.
+- A custom dark-first design system with a design-system proof page.
+- Structured API documentation.
+- ER diagram documentation.
+
+## Scripts
+
+```bash
+npm start
+npm run dev
+```
