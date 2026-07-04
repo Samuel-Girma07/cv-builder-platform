@@ -30,6 +30,8 @@ The backend is a Node.js and Express REST API. The frontend is a separate vanill
 - AI-generated professional summaries.
 - ATS score generation from CV data and job descriptions.
 - AI-generated cover letters with tone selection.
+- **Tailored CV Generation**: Dynamically optimizes CV profiles to match specific job descriptions.
+- **Interview Prep Flashcards**: Generates behavioral and technical questions with STAR-method answers based on candidate experience. (Note: The previous Content Library feature has been deprecated and fully removed in favor of this direct AI generation approach).
 - CV PDF and cover letter PDF downloads.
 - PostgreSQL relational schema with user-owned profiles and applications.
 - Leveled request and application logging to console and a log file.
